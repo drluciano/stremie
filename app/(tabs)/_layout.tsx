@@ -23,6 +23,7 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ title: 'Home', headerShown: false, tabBarIcon: icon('house.fill', 'home') }} />
       <Tabs.Screen name="discover" options={{ title: 'Discover', tabBarIcon: icon('square.grid.2x2.fill', 'grid_view') }} />
       <Tabs.Screen name="search" options={{ title: 'Search', tabBarIcon: icon('magnifyingglass', 'search') }} />
+      <Tabs.Screen name="downloads" options={{ title: 'Downloads', tabBarIcon: icon('arrow.down.circle.fill', 'download') }} />
       <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: icon('gearshape.fill', 'settings') }} />
     </Tabs>
   );

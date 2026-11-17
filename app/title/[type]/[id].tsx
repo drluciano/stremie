@@ -9,6 +9,8 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, V
 import { PosterCard } from '@/components/PosterRow';
 import { Button, Pill } from '@/components/ui';
 import { C } from '@/constants/theme';
+import { useDownloads } from '@/lib/downloads';
+import { playDownload } from '@/lib/playLocal';
 import { useSettings } from '@/lib/settings';
 import { Episode, MediaType, TvDetails, backdrop, poster, titleOf, tmdbClient, yearOf } from '@/lib/tmdb';
 
@@ -17,6 +19,7 @@ export default function TitleScreen() {
   const { tmdbKey } = useSettings();
   const tmdb = useMemo(() => tmdbClient(tmdbKey), [tmdbKey]);
   const { width } = useWindowDimensions();
+  const { findDone } = useDownloads();
 
   const q = useQuery({
     queryKey: ['details', type, id],
@@ -47,6 +50,8 @@ export default function TitleScreen() {
         title,
         ...(season != null ? { season: String(season), episode: String(episode), epTitle: epTitle ?? '' } : {}),
         backdrop: d.backdrop_path ?? '',
+        poster: d.poster_path ?? '',
+        tmdbId: String(d.id),
       },
     });
   };
@@ -76,7 +81,10 @@ export default function TitleScreen() {
       </View>
 
       <View style={{ paddingHorizontal: 16, gap: 10, marginTop: 16 }}>
-        {type === 'movie' && <Button title={imdb ? '▶  Find streams' : 'No IMDb ID: streams unavailable'} disabled={!imdb} onPress={() => openStreams()} />}
+        {type === 'movie' && findDone({ type, tmdbId: d.id }) && (
+          <Button title="▶  Play downloaded" onPress={() => playDownload(findDone({ type, tmdbId: d.id })!)} />
+        )}
+        {type === 'movie' && <Button kind={findDone({ type, tmdbId: d.id }) ? 'secondary' : 'primary'} title={imdb ? '▶  Find streams' : 'No IMDb ID: streams unavailable'} disabled={!imdb} onPress={() => openStreams()} />}
         {trailer && <Button title="Watch trailer" kind="secondary" onPress={() => WebBrowser.openBrowserAsync(`https://www.youtube.com/watch?v=${trailer.key}`)} />}
         {d.tagline ? <Text style={styles.tagline}>{d.tagline}</Text> : null}
         <Text style={styles.overview}>{d.overview}</Text>
@@ -143,6 +151,7 @@ function Seasons({
   }, [show.id]);
 
   const q = useQuery({ queryKey: ['season', show.id, season], queryFn: () => tmdb.season(show.id, season) });
+  const { findDone, findAny } = useDownloads();
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -165,11 +174,15 @@ function Seasons({
         <View style={{ paddingHorizontal: 16, marginTop: 12, gap: 10 }}>
           {q.data?.episodes.map((ep: Episode) => {
             const aired = !ep.air_date || ep.air_date <= today;
+            const meta = { type: 'tv' as const, tmdbId: show.id, season: ep.season_number, episode: ep.episode_number };
+            const done = findDone(meta);
+            const dl = findAny(meta);
             return (
               <Pressable
                 key={ep.id}
-                disabled={!hasImdb || !aired}
-                onPress={() => onPick(ep.season_number, ep.episode_number, ep.name)}
+                disabled={!done && (!hasImdb || !aired)}
+                onPress={() => (done ? playDownload(done) : onPick(ep.season_number, ep.episode_number, ep.name))}
+                onLongPress={() => done && onPick(ep.season_number, ep.episode_number, ep.name)}
                 style={({ pressed }) => [styles.episode, { opacity: !aired ? 0.45 : pressed ? 0.7 : 1 }]}>
                 <View style={styles.still}>
                   {ep.still_path && <Image source={backdrop(ep.still_path, 'w300')} style={StyleSheet.absoluteFill} contentFit="cover" />}
@@ -179,6 +192,7 @@ function Seasons({
                     {ep.episode_number}. {ep.name}
                   </Text>
                   <Text style={styles.castRole}>
+                    {done ? '⬇ Downloaded · ' : dl && dl.status !== 'error' ? '⬇ Downloading · ' : ''}
                     {aired ? [ep.air_date, ep.runtime ? `${ep.runtime}m` : null].filter(Boolean).join(' · ') : `Airs ${ep.air_date}`}
                   </Text>
                   <Text style={styles.epOverview} numberOfLines={2}>

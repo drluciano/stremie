@@ -9,13 +9,15 @@ import { C } from '@/constants/theme';
 import { ParsedStream, fetchStreams } from '@/lib/addons';
 import { EXTERNAL_PLAYERS, openInExternal } from '@/lib/players';
 import { NotCachedError, ResolveProgress, Resolved, isNativePlayable, resolveStream } from '@/lib/resolve';
+import { DOWNLOADS_SUPPORTED, useDownloads } from '@/lib/downloads';
 import { useSettings } from '@/lib/settings';
 import { MediaType } from '@/lib/tmdb';
 
 const QUALITIES = ['All', '2160p', '1080p', '720p'] as const;
 
 export default function Streams() {
-  const p = useLocalSearchParams<{ type: MediaType; imdb: string; title: string; season?: string; episode?: string; epTitle?: string }>();
+  const p = useLocalSearchParams<{ type: MediaType; imdb: string; title: string; season?: string; episode?: string; epTitle?: string; tmdbId?: string; poster?: string; backdrop?: string }>();
+  const downloads = useDownloads();
   const { addonUrl, allDebridKey, externalPlayer } = useSettings();
   const nav = useNavigation();
   const season = p.season ? Number(p.season) : undefined;
@@ -66,6 +68,35 @@ export default function Streams() {
       );
     } else {
       Alert.alert('Choose a player', message, [...options.map((o) => ({ text: o.label, onPress: () => go(o.id) })), { text: 'Cancel', style: 'cancel' as const }]);
+    }
+  };
+
+  const onDownload = async (s: ParsedStream) => {
+    if (!allDebridKey) {
+      Alert.alert('AllDebrid not connected', 'Log in to AllDebrid in Settings first.');
+      return;
+    }
+    if (!p.tmdbId) return;
+    try {
+      await downloads.start(
+        {
+          type: p.type,
+          tmdbId: Number(p.tmdbId),
+          title: p.title,
+          season,
+          episode,
+          episodeTitle: p.epTitle || undefined,
+          poster: p.poster || null,
+          backdrop: p.backdrop || null,
+        },
+        s
+      );
+      Alert.alert('Download started', `${s.sizeText ? s.sizeText + ' · ' : ''}Track it in the Downloads tab. It keeps going in the background.`, [
+        { text: 'OK' },
+        { text: 'Open Downloads', onPress: () => router.push('/downloads') },
+      ]);
+    } catch (e) {
+      Alert.alert('Download', (e as Error).message);
     }
   };
 
@@ -133,6 +164,7 @@ export default function Streams() {
               busy={busy?.key === item.key ? busy.progress : null}
               disabled={!!busy && busy.key !== item.key}
               onPress={() => onPick(item)}
+              onDownload={DOWNLOADS_SUPPORTED && p.tmdbId ? () => onDownload(item) : undefined}
               onCancel={() => {
                 cancel.current.cancelled = true;
                 setBusy(null);
@@ -151,12 +183,14 @@ function StreamRow({
   disabled,
   onPress,
   onCancel,
+  onDownload,
 }: {
   s: ParsedStream;
   busy: ResolveProgress | null;
   disabled: boolean;
   onPress: () => void;
   onCancel: () => void;
+  onDownload?: () => void;
 }) {
   const qColor = s.quality === '2160p' ? '#ffd166' : s.quality === '1080p' ? C.good : C.dim;
   return (
@@ -166,6 +200,12 @@ function StreamRow({
         {s.tags.map((t) => (
           <Pill key={t} text={t} />
         ))}
+        <View style={{ flex: 1 }} />
+        {onDownload && !busy && (
+          <Pressable onPress={onDownload} hitSlop={10} disabled={disabled} style={styles.dl}>
+            <Text style={styles.dlText}>⬇</Text>
+          </Pressable>
+        )}
       </View>
       <Text style={styles.label} numberOfLines={2}>
         {s.label}
@@ -201,5 +241,7 @@ const styles = StyleSheet.create({
   label: { color: C.text, fontSize: 13, lineHeight: 18 },
   meta: { color: C.dim, fontSize: 12 },
   busy: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' },
+  dl: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.cardHi, alignItems: 'center', justifyContent: 'center' },
+  dlText: { color: C.text, fontSize: 15, fontWeight: '700' },
   busyText: { color: C.text, fontSize: 12, flexShrink: 1 },
 });

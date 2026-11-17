@@ -6,6 +6,7 @@ A Stremio / Overseerr-style iOS app for browsing movies and TV and streaming the
 - **AllDebrid sign-in**: log in with a PIN (`/pin/get` → enter the code at alldebrid.com/pin → app polls `/pin/check`) or paste an API key. The key is stored in the iOS Keychain via `expo-secure-store`.
 - **Streams**: any Stremio addon that returns torrent streams (default: Torrentio, unconfigured). Results are sorted by quality then seeders, with 4K / 1080p / 720p filters and HDR/DV/HEVC/MKV tags.
 - **Resolve**: tapping a stream sends the hash to AllDebrid (`magnet/upload`), waits briefly if it is not cached, picks the right file (exact filename, then `SxxEyy` match, then largest video, skipping samples), and unlocks it (`link/unlock`, handling delayed links).
+- **Offline downloads**: tap ⬇ on any stream to save it. Downloads run in the background (iOS background transfer), two at a time with the rest queued, and can be paused, resumed or retried. If the app is closed mid-download, the download comes back paused and picks up again with a fresh AllDebrid link. The Downloads tab shows progress and storage. Finished movies get a *Play downloaded* button, and downloaded episodes are marked and play offline when tapped. Files are saved in Documents/Downloads and show up in the **Files app** (On My iPhone → Stremie), so VLC or Infuse can open MKVs there or through *Open in…*.
 - **Play**: MP4/MOV play in the built-in player (`expo-video`, with AirPlay, Picture-in-Picture and background audio). MKV and other formats that iOS can't play natively are handed to **Infuse**, **VLC** or **Outplayer**, or you can copy the direct link. You can choose a default in Settings → Player.
 
 ## Code map
@@ -17,6 +18,9 @@ A Stremio / Overseerr-style iOS app for browsing movies and TV and streaming the
 | `lib/addons.ts` | Stremio addon `stream` resource + Torrentio title parsing |
 | `lib/resolve.ts` | Hash → AllDebrid → playable URL, file picking |
 | `lib/players.ts` | External player deep links |
+| `lib/downloads.tsx` | Offline download manager (queue, background transfer, pause/resume, index) |
+| `lib/playLocal.ts` | Playing a downloaded file |
+| `app/(tabs)/downloads.tsx` | Downloads tab |
 | `lib/settings.tsx` | Settings context backed by SecureStore |
 | `app/(tabs)/*` | Home, Discover, Search, Settings |
 | `app/title/[type]/[id].tsx` | Movie / series details and episodes |

@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { C } from '@/constants/theme';
+import { DownloadsProvider } from '@/lib/downloads';
 import { SettingsProvider, useSettings } from '@/lib/settings';
 
 export { ErrorBoundary } from 'expo-router';
@@ -25,10 +26,12 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <SettingsProvider>
-        <ThemeProvider value={theme}>
-          <StatusBar style="light" />
-          <Nav />
-        </ThemeProvider>
+        <DownloadsProvider>
+          <ThemeProvider value={theme}>
+            <StatusBar style="light" />
+            <Nav />
+          </ThemeProvider>
+        </DownloadsProvider>
       </SettingsProvider>
     </QueryClientProvider>
   );
