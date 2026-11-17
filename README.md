@@ -59,14 +59,22 @@ eas build --profile development --platform ios
 
 The first `eas build` asks you to sign in to your Apple Developer account and lets EAS create the certificates and provisioning profile for you. Accept the defaults.
 
-### TestFlight
+### TestFlight (one command)
+
+On your Mac, after `npm install`, `eas login` and `eas init`:
 
 ```bash
-eas build --profile production --platform ios
-eas submit --platform ios       # uploads to App Store Connect; creates the app record on first run
+npm run testflight     # = eas build -p ios --profile production --auto-submit
 ```
 
-Then add yourself as an internal tester in App Store Connect → TestFlight.
+On the first run EAS will ask you to:
+1. Log in to your Apple Developer account (and enter the 2FA code).
+2. Pick your team, then let it register `com.drluciano.stremie` and generate the distribution certificate and provisioning profile. Say yes to each.
+3. Create the app in App Store Connect and an App Store Connect API key for uploads. Say yes again.
+
+The build runs in the cloud (about 15 to 25 minutes), then is uploaded to App Store Connect. Apple takes another 5 to 15 minutes to process it. After that, open App Store Connect → Stremie → TestFlight, add yourself under **Internal Testing**, and install it from the TestFlight app on your iPhone.
+
+Later builds: run `npm run testflight` again; the build number goes up on its own. To resubmit an existing build: `npm run submit:ios`.
 
 > Note: App Store review is unlikely to approve a torrent/debrid streaming app. Ad hoc (`preview`) builds and TestFlight internal testing are the realistic ways to keep this on your own devices.
 
