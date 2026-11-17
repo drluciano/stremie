@@ -1,0 +1,25 @@
+# Builds the iOS app and sends it to TestFlight on every push to main.
+# Requires: the GitHub repo linked to the Expo project (expo.dev → project → GitHub),
+# and one interactive `npm run testflight` run first so EAS has the Apple credentials
+# and App Store Connect API key stored.
+name: TestFlight
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build_ios:
+    name: Build iOS
+    type: build
+    params:
+      platform: ios
+      profile: production
+
+  submit_ios:
+    name: Submit to TestFlight
+    needs: [build_ios]
+    type: submit
+    params:
+      platform: ios
+      build_id: ${{ needs.build_ios.outputs.build_id }}

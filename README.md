@@ -76,6 +76,15 @@ The build runs in the cloud (about 15 to 25 minutes), then is uploaded to App St
 
 Later builds: run `npm run testflight` again; the build number goes up on its own. To resubmit an existing build: `npm run submit:ios`.
 
+### Automatic TestFlight on every push to `main`
+
+`.eas/workflows/testflight.yml` builds and submits on each push to `main`. To turn it on:
+1. Do the first `npm run testflight` on your Mac (this stores the Apple credentials and upload key on EAS).
+2. Commit and push the `app.json` change from `eas init`.
+3. On expo.dev, open the project → **Project settings → GitHub**, install the Expo GitHub app and connect `drluciano/stremie`.
+
+Each push uses one iOS build from your Expo plan. If that's too many, change the trigger in the workflow file.
+
 > Note: App Store review is unlikely to approve a torrent/debrid streaming app. Ad hoc (`preview`) builds and TestFlight internal testing are the realistic ways to keep this on your own devices.
 
 ### Over-the-air updates (optional)
