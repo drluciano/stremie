@@ -39,3 +39,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# CI signing material (only the encrypted credentials/ios.enc is committed)
+credentials.json
+credentials/ios/
+credentials/*.p8
+build.json

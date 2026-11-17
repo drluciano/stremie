@@ -42,54 +42,24 @@ In the app, open **Settings** and:
 2. **AllDebrid**: tap *Log in with PIN* and enter the code at alldebrid.com/pin, or paste a key from <https://alldebrid.com/apikeys>.
 3. Optionally install **Infuse**, **VLC** or **Outplayer** for MKV files.
 
-## 2. Set up EAS + your Apple account (installable build)
+## 2. TestFlight from GitHub Actions (no Mac needed)
 
-`eas.json` is already in the repo with `development`, `simulator`, `preview` and `production` profiles. The bundle ID is `com.drluciano.stremie` (change `ios.bundleIdentifier` in `app.json` if you want something else before the first build).
+`.github/workflows/testflight.yml` builds the app on EAS and uploads it to TestFlight on every push to `main` (and from **Actions → TestFlight → Run workflow**). It needs only an App Store Connect API key. On its first run it links the Expo project, registers `com.drluciano.stremie`, creates the distribution certificate and App Store provisioning profile through Apple's API, and commits them encrypted (`credentials/ios.enc`, AES-256-GCM, key derived from your `.p8`).
 
-```bash
-npm install -g eas-cli
-eas login                       # your Expo account
-eas init                        # links this repo to an Expo project, writes extra.eas.projectId into app.json
+One-time setup, all doable from a phone browser:
 
-# Register your iPhone for internal (ad hoc) builds — opens a link/QR to install a profile on the phone
-eas device:create
+1. **App Store Connect API key**: appstoreconnect.apple.com → Users and Access → Integrations → App Store Connect API → Team Keys → ＋, access **Admin**. Note the **Key ID** and the **Issuer ID**, and download the `.p8` (you can only download it once).
+2. **Expo token**: expo.dev → Account settings → Access tokens → Create.
+3. **GitHub secrets**: github.com/drluciano/stremie → Settings → Secrets and variables → Actions → New repository secret:
+   `EXPO_TOKEN`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (the whole text of the .p8, including the BEGIN/END lines).
+4. **Run it**: Actions → TestFlight → Run workflow. The first run stops after creating the certificates with a message asking you to:
+5. **Create the app record**: App Store Connect → Apps → ＋ New App → iOS, name Stremie, bundle ID `com.drluciano.stremie`, any SKU. Then run the workflow again.
 
-# Option A: preview build — a standalone app you install from a link
-eas build --profile preview --platform ios
+After that, each push to `main` builds and uploads automatically (about 20 to 30 minutes, then 5 to 15 minutes of Apple processing). Add yourself under TestFlight → Internal Testing once. Each run uses one iOS build from your Expo plan.
 
-# Option B: development build — like Expo Go but with this app's native config; use with `npx expo start --dev-client`
-eas build --profile development --platform ios
-```
+Local alternative (if you have a Mac): `npx eas-cli build -p ios --profile production --auto-submit`.
 
-The first `eas build` asks you to sign in to your Apple Developer account and lets EAS create the certificates and provisioning profile for you. Accept the defaults.
-
-### TestFlight (one command)
-
-On your Mac, after `npm install`, `eas login` and `eas init`:
-
-```bash
-npm run testflight     # = eas build -p ios --profile production --auto-submit
-```
-
-On the first run EAS will ask you to:
-1. Log in to your Apple Developer account (and enter the 2FA code).
-2. Pick your team, then let it register `com.drluciano.stremie` and generate the distribution certificate and provisioning profile. Say yes to each.
-3. Create the app in App Store Connect and an App Store Connect API key for uploads. Say yes again.
-
-The build runs in the cloud (about 15 to 25 minutes), then is uploaded to App Store Connect. Apple takes another 5 to 15 minutes to process it. After that, open App Store Connect → Stremie → TestFlight, add yourself under **Internal Testing**, and install it from the TestFlight app on your iPhone.
-
-Later builds: run `npm run testflight` again; the build number goes up on its own. To resubmit an existing build: `npm run submit:ios`.
-
-### Automatic TestFlight on every push to `main`
-
-`.eas/workflows/testflight.yml` builds and submits on each push to `main`. To turn it on:
-1. Do the first `npm run testflight` on your Mac (this stores the Apple credentials and upload key on EAS).
-2. Commit and push the `app.json` change from `eas init`.
-3. On expo.dev, open the project → **Project settings → GitHub**, install the Expo GitHub app and connect `drluciano/stremie`.
-
-Each push uses one iOS build from your Expo plan. If that's too many, change the trigger in the workflow file.
-
-> Note: App Store review is unlikely to approve a torrent/debrid streaming app. Ad hoc (`preview`) builds and TestFlight internal testing are the realistic ways to keep this on your own devices.
+> Note: App Store review is unlikely to approve a torrent/debrid streaming app. TestFlight internal testing is the realistic way to keep this on your own devices.
 
 ### Over-the-air updates (optional)
 
